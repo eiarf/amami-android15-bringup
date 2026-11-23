@@ -1,0 +1,34 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+Subject: [PATCH] shims: Make platform-dependent shims native:platform
+
+libaudioclient_sony_shim and libshim_cald link against platform libraries
+(libaudioclient, libsensor, libgui, libbinder) and must not be marked vendor/proprietary.
+
+---
+ device/sony/msm8974-common/libshims/Android.mk | 2 +-
+ device/sony/rhine-common/BoardConfigCommon.mk  | 2 +-
+ device/sony/rhine-common/libshims/Android.mk   | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/device/sony/msm8974-common/libshims/Android.mk b/device/sony/msm8974-common/libshims/Android.mk
+--- a/device/sony/msm8974-common/libshims/Android.mk
++++ b/device/sony/msm8974-common/libshims/Android.mk
+@@ -39,3 +39,3 @@ LOCAL_MODULE_CLASS := SHARED_LIBRARIES
+ LOCAL_SHARED_LIBRARIES := libaudioclient
+-LOCAL_VENDOR_MODULE := true
++#LOCAL_VENDOR_MODULE := true
+ include $(BUILD_SHARED_LIBRARY)
+diff --git a/device/sony/rhine-common/BoardConfigCommon.mk b/device/sony/rhine-common/BoardConfigCommon.mk
+--- a/device/sony/rhine-common/BoardConfigCommon.mk
++++ b/device/sony/rhine-common/BoardConfigCommon.mk
+@@ -78,3 +78,3 @@ TARGET_LD_SHIM_LIBS += \
+-	/system/lib/hw/camera.vendor.qcom.so|/system/vendor/lib/libshim_cald.so \
++	/system/lib/hw/camera.vendor.qcom.so|/system/lib/libshim_cald.so \
+diff --git a/device/sony/rhine-common/libshims/Android.mk b/device/sony/rhine-common/libshims/Android.mk
+--- a/device/sony/rhine-common/libshims/Android.mk
++++ b/device/sony/rhine-common/libshims/Android.mk
+@@ -36,3 +36,3 @@ LOCAL_MODULE := libshim_cald
+-LOCAL_PROPRIETARY_MODULE := true
++#LOCAL_PROPRIETARY_MODULE := true
+ LOCAL_MODULE_TAGS := optional
+-- 

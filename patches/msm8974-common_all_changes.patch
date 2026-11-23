@@ -1,0 +1,331 @@
+diff --git a/BoardConfigCommon.mk b/BoardConfigCommon.mk
+index f3b4e47..b094403 100644
+--- a/BoardConfigCommon.mk
++++ b/BoardConfigCommon.mk
+@@ -135,7 +135,7 @@ TARGET_USES_INTERACTION_BOOST := true
+ 
+ # Shims
+ TARGET_LD_SHIM_LIBS += \
+-    /system/vendor/lib/libril-qc-qmi-1.so|libaudioclient_shim.so
++    /system/vendor/lib/libril-qc-qmi-1.so|libaudioclient_sony_shim.so
+ 
+ # SODP build barrier
+ PRODUCT_PLATFORM_SOD := true
+@@ -145,4 +145,7 @@ DEVICE_MANIFEST_FILE := device/sony/msm8974-common/treble-manifest.xml
+ ifneq ($(BOARD_HAVE_RADIO),false)
+     DEVICE_MANIFEST_FILE += device/sony/msm8974-common/treble-manifest-radio.xml
+ endif
+-PRODUCT_ENFORCE_VINTF_MANIFEST_OVERRIDE := true
++PRODUCT_ENFORCE_VINTF_MANIFEST_OVERRIDE := false
++
++ALLOW_MISSING_DEPENDENCIES := true
++BUILD_BROKEN_MISSING_BUILD_REQUIREMENTS := true
+diff --git a/camera/Android.mk b/camera/Android.mk
+index 8170231..1eab26b 100644
+--- a/camera/Android.mk
++++ b/camera/Android.mk
+@@ -25,4 +25,5 @@ LOCAL_MODULE_RELATIVE_PATH := hw
+ LOCAL_MODULE := camera.qcom
+ LOCAL_MODULE_TAGS := optional
+ 
++LOCAL_HEADER_LIBRARIES := libhardware_headers
+ include $(BUILD_SHARED_LIBRARY)
+diff --git a/camera/CameraWrapper.cpp b/camera/CameraWrapper.cpp
+index b61ec62..7162251 100644
+--- a/camera/CameraWrapper.cpp
++++ b/camera/CameraWrapper.cpp
+@@ -258,7 +258,7 @@ static char *camera_fixup_getparams(int __attribute__((unused)) id,
+     }
+ 
+     String8 strParams = params.flatten();
+-    char *ret = strdup(strParams.string());
++    char *ret = strdup(strParams.c_str());
+ 
+     ALOGV("%s: get parameters fixed up", __FUNCTION__);
+     return ret;
+@@ -339,7 +339,7 @@ static char *camera_fixup_setparams(int __attribute__((unused)) id,
+     params.dump();
+ 
+     String8 strParams = params.flatten();
+-    char *ret = strdup(strParams.string());
++    char *ret = strdup(strParams.c_str());
+ 
+     ALOGV("%s: fixed parameters:", __FUNCTION__);
+     return ret;
+diff --git a/gps/core/Android.mk b/gps/core/Android.mk
+index d8cecf9..a81fa7a 100644
+--- a/gps/core/Android.mk
++++ b/gps/core/Android.mk
+@@ -38,7 +38,7 @@ LOCAL_C_INCLUDES:= \
+     $(TARGET_OUT_HEADERS)/gps.utils \
+     $(TARGET_OUT_HEADERS)/libflp
+ 
+-LOCAL_HEADER_LIBRARIES := libgps.utils_headers
++LOCAL_HEADER_LIBRARIES := libgps.utils_headers libhardware_headers
+ 
+ include $(BUILD_SHARED_LIBRARY)
+ 
+diff --git a/gps/loc_api/libloc_api_50001/Android.mk b/gps/loc_api/libloc_api_50001/Android.mk
+index b366e50..79f4297 100644
+--- a/gps/loc_api/libloc_api_50001/Android.mk
++++ b/gps/loc_api/libloc_api_50001/Android.mk
+@@ -36,7 +36,7 @@ LOCAL_SRC_FILES += \
+ LOCAL_CFLAGS += \
+     -fno-short-enums \
+     -D_ANDROID_ \
+-    -Wno-format \
++    -Wno-format -Wno-error=format-insufficient-args -Wno-format-insufficient-args \
+     -Wno-mismatched-tags \
+     -Wno-null-conversion \
+     -Wno-reorder \
+@@ -51,7 +51,7 @@ LOCAL_C_INCLUDES:= \
+     $(LOCAL_PATH) \
+     $(TARGET_OUT_HEADERS)/libflp
+ 
+-LOCAL_HEADER_LIBRARIES := libgps.utils_headers libloc_core_headers
++LOCAL_HEADER_LIBRARIES := libgps.utils_headers libloc_core_headers libhardware_headers
+ 
+ include $(BUILD_SHARED_LIBRARY)
+ 
+@@ -86,7 +86,7 @@ LOCAL_SRC_FILES += \
+ LOCAL_CFLAGS += \
+     -fno-short-enums \
+     -D_ANDROID_ \
+-    -Wno-format \
++    -Wno-format -Wno-error=format-insufficient-args -Wno-format-insufficient-args \
+     -Wno-mismatched-tags \
+     -Wno-unused-parameter
+ 
+@@ -98,6 +98,6 @@ LOCAL_C_INCLUDES:= \
+ 
+ LOCAL_MODULE_RELATIVE_PATH := hw
+ 
+-LOCAL_HEADER_LIBRARIES := libgps.utils_headers libloc_core_headers
++LOCAL_HEADER_LIBRARIES := libgps.utils_headers libloc_core_headers libhardware_headers
+ 
+ include $(BUILD_SHARED_LIBRARY)
+diff --git a/gps/loc_api/libloc_api_50001/loc.cpp b/gps/loc_api/libloc_api_50001/loc.cpp
+index 6a97709..e3cc35b 100644
+--- a/gps/loc_api/libloc_api_50001/loc.cpp
++++ b/gps/loc_api/libloc_api_50001/loc.cpp
+@@ -1030,7 +1030,7 @@ static int loc_agps_revoke_certificates(const Sha1CertificateFingerprint* finger
+                                         size_t length)
+ {
+     ENTRY_LOG();
+-    LOC_LOGE("%s:%d]: agps_revoke_certificates not supported");
++    LOC_LOGE("%s:%d]: agps_revoke_certificates not supported", __func__, __LINE__);
+     int ret_val = AGPS_CERTIFICATE_ERROR_GENERIC;
+     EXIT_LOG(%d, ret_val);
+     return ret_val;
+diff --git a/gps/loc_api/libloc_api_50001/loc_eng.cpp b/gps/loc_api/libloc_api_50001/loc_eng.cpp
+index 6f3be97..46238d7 100644
+--- a/gps/loc_api/libloc_api_50001/loc_eng.cpp
++++ b/gps/loc_api/libloc_api_50001/loc_eng.cpp
+@@ -2688,7 +2688,7 @@ int loc_eng_agps_install_certificates(loc_eng_data_s_type &loc_eng_data,
+         {
+             if (certificates[i].length > AGPS_CERTIFICATE_MAX_LENGTH) {
+                 LOC_LOGE("cert#(%u) length of %u is too big! greater than %u",
+-                        certificates[i].length, AGPS_CERTIFICATE_MAX_LENGTH);
++                        i, certificates[i].length, AGPS_CERTIFICATE_MAX_LENGTH);
+                 ret_val = AGPS_CERTIFICATE_ERROR_GENERIC;
+                 break;
+             }
+diff --git a/gps/utils/Android.mk b/gps/utils/Android.mk
+index 3c0f7ab..175c8d3 100644
+--- a/gps/utils/Android.mk
++++ b/gps/utils/Android.mk
+@@ -51,6 +51,7 @@ LOCAL_PROPRIETARY_MODULE := true
+ 
+ LOCAL_MODULE_TAGS := optional
+ 
++LOCAL_HEADER_LIBRARIES += libhardware_headers
+ include $(BUILD_SHARED_LIBRARY)
+ 
+ include $(CLEAR_VARS)
+diff --git a/init/Android.mk b/init/Android.mk
+index a0b16dc..d9c9a1c 100644
+--- a/init/Android.mk
++++ b/init/Android.mk
+@@ -19,4 +19,5 @@ $(ramdisk_init_real): \
+ 	  echo "init.real: $(ramdisk_init) is already a symlink"; \
+ 	fi
+ 
+-ALL_DEFAULT_INSTALLED_MODULES += $(ramdisk_init_real)
++# Disabled for A15 direct first-stage init
++# ALL_DEFAULT_INSTALLED_MODULES += $(ramdisk_init_real)
+diff --git a/liblights/Android.mk b/liblights/Android.mk
+index a8e0f05..94a4fb8 100644
+--- a/liblights/Android.mk
++++ b/liblights/Android.mk
+@@ -21,5 +21,6 @@ LOCAL_MODULE := lights.msm8974
+ LOCAL_MODULE_TAGS := optional
+ LOCAL_MODULE_RELATIVE_PATH := hw
+ LOCAL_PROPRIETARY_MODULE := true
++LOCAL_HEADER_LIBRARIES := libhardware_headers
+ include $(BUILD_SHARED_LIBRARY)
+ 
+diff --git a/libshims/Android.mk b/libshims/Android.mk
+index e269112..73aa13e 100644
+--- a/libshims/Android.mk
++++ b/libshims/Android.mk
+@@ -34,8 +34,8 @@ include $(BUILD_SHARED_LIBRARY)
+ 
+ include $(CLEAR_VARS)
+ LOCAL_SRC_FILES := libaudioclient_shim.cpp
+-LOCAL_MODULE := libaudioclient_shim
++LOCAL_MODULE := libaudioclient_sony_shim
+ LOCAL_MODULE_CLASS := SHARED_LIBRARIES
+ LOCAL_SHARED_LIBRARIES := libaudioclient
+-LOCAL_VENDOR_MODULE := true
++#LOCAL_VENDOR_MODULE := true
+ include $(BUILD_SHARED_LIBRARY)
+diff --git a/libshims/signal.c b/libshims/signal.c
+index a3dcb9a..96a5974 100644
+--- a/libshims/signal.c
++++ b/libshims/signal.c
+@@ -14,7 +14,7 @@
+  * limitations under the License.
+  */
+ 
+-#include "signal.h"
++#include <signal.h>
+ 
+ sighandler_t bsd_signal(int signum, sighandler_t handler) {
+    return signal(signum, handler);
+diff --git a/libshims/signal.h b/libshims/signal.h
+deleted file mode 100644
+index 295f42c..0000000
+--- a/libshims/signal.h
++++ /dev/null
+@@ -1,116 +0,0 @@
+-/*
+- * Copyright (C) 2008 The Android Open Source Project
+- * All rights reserved.
+- *
+- * Redistribution and use in source and binary forms, with or without
+- * modification, are permitted provided that the following conditions
+- * are met:
+- *  * Redistributions of source code must retain the above copyright
+- *    notice, this list of conditions and the following disclaimer.
+- *  * Redistributions in binary form must reproduce the above copyright
+- *    notice, this list of conditions and the following disclaimer in
+- *    the documentation and/or other materials provided with the
+- *    distribution.
+- *
+- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+- * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+- * SUCH DAMAGE.
+- */
+-
+-#ifndef _SIGNAL_H_
+-#define _SIGNAL_H_
+-
+-#include <sys/cdefs.h>
+-#include <sys/types.h>
+-
+-#include <asm/sigcontext.h>
+-#include <bits/pthread_types.h>
+-#include <bits/signal_types.h>
+-#include <bits/timespec.h>
+-#include <limits.h>
+-
+-#include <sys/ucontext.h>
+-#define __BIONIC_HAVE_UCONTEXT_T
+-
+-__BEGIN_DECLS
+-
+-/* The kernel headers define SIG_DFL (0) and SIG_IGN (1) but not SIG_HOLD, since
+- * SIG_HOLD is only used by the deprecated SysV signal API.
+- */
+-#define SIG_HOLD __BIONIC_CAST(reinterpret_cast, sighandler_t, 2)
+-
+-/* We take a few real-time signals for ourselves. May as well use the same names as glibc. */
+-#define SIGRTMIN (__libc_current_sigrtmin())
+-#define SIGRTMAX (__libc_current_sigrtmax())
+-int __libc_current_sigrtmin(void) __INTRODUCED_IN(21);
+-int __libc_current_sigrtmax(void) __INTRODUCED_IN(21);
+-
+-extern const char* const sys_siglist[_NSIG];
+-extern const char* const sys_signame[_NSIG]; /* BSD compatibility. */
+-
+-#define si_timerid si_tid /* glibc compatibility. */
+-
+-int sigaction(int __signal, const struct sigaction* __new_action, struct sigaction* __old_action);
+-
+-int siginterrupt(int __signal, int __flag);
+-
+-#if __ANDROID_API__ >= __ANDROID_API_L__
+-sighandler_t signal(int __signal, sighandler_t __handler) __INTRODUCED_IN(21);
+-int sigaddset(sigset_t* __set, int __signal) __INTRODUCED_IN(21);
+-int sigdelset(sigset_t* __set, int __signal) __INTRODUCED_IN(21);
+-int sigemptyset(sigset_t* __set) __INTRODUCED_IN(21);
+-int sigfillset(sigset_t* __set) __INTRODUCED_IN(21);
+-int sigismember(const sigset_t* __set, int __signal) __INTRODUCED_IN(21);
+-#else
+-// Implemented as static inlines before 21.
+-#endif
+-
+-int sigpending(sigset_t* __set);
+-int sigprocmask(int __how, const sigset_t* __new_set, sigset_t* __old_set);
+-int sigsuspend(const sigset_t* __mask);
+-int sigwait(const sigset_t* __set, int* __signal);
+-
+-int sighold(int __signal)
+-  __attribute__((deprecated("use sigprocmask() or pthread_sigmask() instead")))
+-  __INTRODUCED_IN(26);
+-int sigignore(int __signal)
+-  __attribute__((deprecated("use sigaction() instead"))) __INTRODUCED_IN(26);
+-int sigpause(int __signal)
+-  __attribute__((deprecated("use sigsuspend() instead"))) __INTRODUCED_IN(26);
+-int sigrelse(int __signal)
+-  __attribute__((deprecated("use sigprocmask() or pthread_sigmask() instead")))
+-  __INTRODUCED_IN(26);
+-sighandler_t sigset(int __signal, sighandler_t __handler)
+-  __attribute__((deprecated("use sigaction() instead"))) __INTRODUCED_IN(26);
+-
+-int raise(int __signal);
+-int kill(pid_t __pid, int __signal);
+-int killpg(int __pgrp, int __signal);
+-int tgkill(int __tgid, int __tid, int __signal) __INTRODUCED_IN_32(16);
+-
+-int sigaltstack(const stack_t* __new_signal_stack, stack_t* __old_signal_stack);
+-
+-void psiginfo(const siginfo_t* __info, const char* __msg) __INTRODUCED_IN(17);
+-void psignal(int __signal, const char* __msg) __INTRODUCED_IN(17);
+-
+-int pthread_kill(pthread_t __pthread, int __signal);
+-int pthread_sigmask(int __how, const sigset_t* __new_set, sigset_t* __old_set);
+-
+-int sigqueue(pid_t __pid, int __signal, const union sigval __value) __INTRODUCED_IN(23);
+-int sigtimedwait(const sigset_t* __set, siginfo_t* __info, const struct timespec* __timeout) __INTRODUCED_IN(23);
+-int sigwaitinfo(const sigset_t* __set, siginfo_t* __info) __INTRODUCED_IN(23);
+-
+-__END_DECLS
+-
+-#include <android/legacy_signal_inlines.h>
+-
+-#endif
+diff --git a/msm8974.mk b/msm8974.mk
+index 2f54c1a..fa84619 100644
+--- a/msm8974.mk
++++ b/msm8974.mk
+@@ -176,8 +176,8 @@ PRODUCT_PACKAGES += \
+     TimeKeep
+ 
+ # VNDK
+-PRODUCT_COPY_FILES += \
+-    prebuilts/vndk/v29/arm/arch-arm-armv7-a-neon/shared/vndk-core/libprotobuf-cpp-lite.so:$(TARGET_COPY_OUT_VENDOR)/lib/libprotobuf-cpp-lite-v29.so
++PRODUCT_PACKAGES += \
++    libprotobuf-cpp-lite-v29
+ 
+ # Wifi
+ PRODUCT_PACKAGES += \

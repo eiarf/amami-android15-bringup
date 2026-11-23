@@ -1,0 +1,61 @@
+diff --git a/AndroidProducts.mk b/AndroidProducts.mk
+index 6305301..4c1baf5 100644
+--- a/AndroidProducts.mk
++++ b/AndroidProducts.mk
+@@ -2,6 +2,5 @@ PRODUCT_MAKEFILES := \
+     $(LOCAL_DIR)/lineage_amami.mk
+ 
+ COMMON_LUNCH_CHOICES := \
+-    lineage_amami-user \
+-    lineage_amami-userdebug \
+-    lineage_amami-eng
++    lineage_amami-bp1a-userdebug \
++    lineage_amami-bp1a-eng
+diff --git a/BoardConfig.mk b/BoardConfig.mk
+index a1f154d..c56f7f5 100644
+--- a/BoardConfig.mk
++++ b/BoardConfig.mk
+@@ -38,7 +38,7 @@ BOARD_USERDATAIMAGE_PARTITION_SIZE := 12891175936
+ BOARD_CACHEIMAGE_PARTITION_SIZE := 209715200
+ 
+ #Recovery
+-BOARD_USE_CUSTOM_RECOVERY_FONT := \"roboto_15x24.h\"
++# BOARD_USE_CUSTOM_RECOVERY_FONT := \"roboto_15x24.h\"
+ 
+ # Security patch level
+ VENDOR_SECURITY_PATCH := 2015-11-01
+diff --git a/lineage.mk b/lineage.mk
+index 795b090..ba4cc94 100644
+--- a/lineage.mk
++++ b/lineage.mk
+@@ -3,8 +3,6 @@ $(call inherit-product, vendor/lineage/config/common_full_phone.mk)
+ 
+ $(call inherit-product, device/sony/amami/full_amami.mk)
+ 
+-PRODUCT_BUILD_PROP_OVERRIDES += PRODUCT_NAME=D5503
+-PRODUCT_BUILD_PROP_OVERRIDES += PRIVATE_BUILD_DESC="D5503-user 5.1.1 14.6.A.1.236 2031203603 release-keys"
+ 
+ BUILD_FINGERPRINT := Sony/D5503/D5503:5.1.1/14.6.A.1.236/2031203603:user/release-keys
+ 
+@@ -12,8 +10,6 @@ PRODUCT_NAME := lineage_amami
+ PRODUCT_DEVICE := amami
+ 
+ # AICP Device Maintainer
+-PRODUCT_BUILD_PROP_OVERRIDES += \
+-        DEVICE_MAINTAINERS="SpiritCroc"
+ 
+ # Boot animation
+ TARGET_SCREEN_HEIGHT := 1280
+diff --git a/lineage_amami.mk b/lineage_amami.mk
+index a00429e..13b721b 100644
+--- a/lineage_amami.mk
++++ b/lineage_amami.mk
+@@ -3,8 +3,6 @@ $(call inherit-product, vendor/lineage/config/common_full_phone.mk)
+ 
+ $(call inherit-product, device/sony/amami/full_amami.mk)
+ 
+-PRODUCT_BUILD_PROP_OVERRIDES += PRODUCT_NAME=D5503
+-PRODUCT_BUILD_PROP_OVERRIDES += PRIVATE_BUILD_DESC="D5503-user 5.1.1 14.6.A.1.236 2031203603 release-keys"
+ 
+ BUILD_FINGERPRINT := Sony/D5503/D5503:5.1.1/14.6.A.1.236/2031203603:user/release-keys
+ 

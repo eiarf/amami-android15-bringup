@@ -1,0 +1,12 @@
+# Output binaries (large files exceeding GitHub 100MB limit)
+out/
+*.img
+*.zip
+*.tar.gz
+*.cpio.gz
+__pycache__/
+*.pyc
+
+# Local system files
+.DS_Store
+Thumbs.db

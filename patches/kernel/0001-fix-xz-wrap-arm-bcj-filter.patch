@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+Subject: [PATCH] scripts/xz_wrap: Use /usr/bin/xz and fix lzma2 options
+
+Android prebuilt build-tools xz lacks ARM BCJ filter support.
+Use host /usr/bin/xz when available and fix option formatting.
+
+---
+ scripts/xz_wrap.sh | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/scripts/xz_wrap.sh b/scripts/xz_wrap.sh
+--- a/scripts/xz_wrap.sh
++++ b/scripts/xz_wrap.sh
+@@ -14,3 +14,8 @@ case $SRCARCH in
+ 	ia64)           BCJ=--ia64; LZMA2OPTS=pb=4, ;;
+ 	arm)            BCJ=--arm ;;
+ 	sparc)          BCJ=--sparc ;;
+ esac
+ 
++XZ_BIN=xz
++if [ -x /usr/bin/xz ]; then
++    XZ_BIN=/usr/bin/xz
++fi
++
+-exec xz --check=crc32 $BCJ --lzma2=$LZMA2OPTS,dict=32MiB
++exec "$XZ_BIN" --check=crc32 $BCJ --lzma2=${LZMA2OPTS}dict=32MiB
+-- 

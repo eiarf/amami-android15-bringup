@@ -1,0 +1,16 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+Subject: [PATCH] rhine-common: Disable BOARD_PROVIDES_LIBRIL
+
+Use LineageOS 22 global hardware/ril/libril instead of legacy local libril.
+
+---
+ BoardConfigCommon.mk | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/BoardConfigCommon.mk b/BoardConfigCommon.mk
+--- a/BoardConfigCommon.mk
++++ b/BoardConfigCommon.mk
+@@ -103,1 +103,1 @@ WIFI_DRIVER_FW_PATH_AP           := "ap"
+-BOARD_PROVIDES_LIBRIL := true
++#BOARD_PROVIDES_LIBRIL := true
+-- 

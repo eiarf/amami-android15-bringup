@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+Subject: [PATCH] msm8974-common: Rename libaudioclient_shim to libaudioclient_sony_shim
+
+Avoid collision with LineageOS 22 global hardware/lineage/compat libaudioclient_shim.
+
+---
+ BoardConfigCommon.mk         | 2 +-
+ libshims/Android.mk          | 2 +-
+ msm8974.mk                   | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/BoardConfigCommon.mk b/BoardConfigCommon.mk
+--- a/BoardConfigCommon.mk
++++ b/BoardConfigCommon.mk
+@@ -135,3 +135,3 @@ TARGET_LD_SHIM_LIBS += \
+-    /system/vendor/lib/libril-qc-qmi-1.so|libaudioclient_shim.so
++    /system/vendor/lib/libril-qc-qmi-1.so|libaudioclient_sony_shim.so
+diff --git a/libshims/Android.mk b/libshims/Android.mk
+--- a/libshims/Android.mk
++++ b/libshims/Android.mk
+@@ -37,3 +37,3 @@ include $(CLEAR_VARS)
+ LOCAL_SRC_FILES := libaudioclient_shim.cpp
+-LOCAL_MODULE := libaudioclient_shim
++LOCAL_MODULE := libaudioclient_sony_shim
+ LOCAL_MODULE_CLASS := SHARED_LIBRARIES
+diff --git a/msm8974.mk b/msm8974.mk
+--- a/msm8974.mk
++++ b/msm8974.mk
+@@ -154,3 +154,3 @@ PRODUCT_PACKAGES += \
+-    libaudioclient_shim
++    libaudioclient_sony_shim
+-- 

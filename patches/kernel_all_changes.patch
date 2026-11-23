@@ -1,0 +1,321 @@
+diff --git a/arch/arm/configs/lineageos_rhine_amami_row_defconfig b/arch/arm/configs/lineageos_rhine_amami_row_defconfig
+index aa10ea832f9..3ae10672848 100644
+--- a/arch/arm/configs/lineageos_rhine_amami_row_defconfig
++++ b/arch/arm/configs/lineageos_rhine_amami_row_defconfig
+@@ -106,7 +106,6 @@ CONFIG_ENABLE_VMALLOC_SAVING=y
+ CONFIG_CC_STACKPROTECTOR=y
+ CONFIG_ARM_FLUSH_CONSOLE_ON_RESTART=y
+ CONFIG_USE_OF=y
+-CONFIG_BUILD_ARM_APPENDED_DTB_IMAGE=y
+ CONFIG_CPU_FREQ=y
+ CONFIG_CPU_FREQ_GOV_POWERSAVE=y
+ CONFIG_CPU_FREQ_GOV_USERSPACE=y
+@@ -635,3 +634,15 @@ CONFIG_CRYPTO_AES_ARM_BS=y
+ CONFIG_CRYPTO_TWOFISH=y
+ CONFIG_CRYPTO_DEV_QCE=y
+ CONFIG_CRYPTO_DEV_QCEDEV=y
++CONFIG_CPUSETS=y
++CONFIG_PROC_PID_CPUSET=y
++CONFIG_BLK_CGROUP=y
++CONFIG_ANDROID_TREBLE_SPOOF_KERNEL_VERSION=y
++CONFIG_ANDROID_TREBLE_BYPASS_KERNEL_VERSION_CHECKS=y
++CONFIG_ANDROID_TREBLE_SPOOF_KERNEL_VERSION_PREFIX="4.9.337"
++CONFIG_ANDROID_PERSISTENT_RAM=y
++CONFIG_ANDROID_RAM_CONSOLE_ENABLE_VERBOSE=y
++CONFIG_ARM_APPENDED_DTB=y
++CONFIG_ARM_ATAG_DTB_COMPAT=y
++CONFIG_BUILD_ARM_APPENDED_DTB_IMAGE=y
++CONFIG_BUILD_ARM_APPENDED_DTB_IMAGE_NAMES="msm8974-v2.0-1-rhine_amami_row msm8974-v2.2-rhine_amami_row"
+diff --git a/arch/arm/include/asm/unistd.h b/arch/arm/include/asm/unistd.h
+index 1d2edabc1e4..27cae97bda0 100644
+--- a/arch/arm/include/asm/unistd.h
++++ b/arch/arm/include/asm/unistd.h
+@@ -404,6 +404,7 @@
+ #define __NR_setns			(__NR_SYSCALL_BASE+375)
+ #define __NR_process_vm_readv		(__NR_SYSCALL_BASE+376)
+ #define __NR_process_vm_writev		(__NR_SYSCALL_BASE+377)
++#define __NR_renameat2			(__NR_SYSCALL_BASE+382)
+ #define __NR_seccomp			(__NR_SYSCALL_BASE+383)
+ #define __NR_getrandom			(__NR_SYSCALL_BASE+384)
+ #define __NR_memfd_create		(__NR_SYSCALL_BASE+385)
+diff --git a/arch/arm/kernel/calls.S b/arch/arm/kernel/calls.S
+index 03f3c47f038..a3a7e4ca1be 100644
+--- a/arch/arm/kernel/calls.S
++++ b/arch/arm/kernel/calls.S
+@@ -391,7 +391,7 @@
+ 		CALL(sys_ni_syscall)
+ /* 380 */	CALL(sys_ni_syscall)
+ 		CALL(sys_ni_syscall)
+-		CALL(sys_ni_syscall)
++		CALL(sys_renameat2)
+ 		CALL(sys_seccomp)
+ 		CALL(sys_getrandom)
+ /* 385 */	CALL(sys_memfd_create)
+diff --git a/fs/namei.c b/fs/namei.c
+index 3b43b74e74c..7311bc7c3f5 100644
+--- a/fs/namei.c
++++ b/fs/namei.c
+@@ -3981,8 +3981,8 @@ int vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
+ }
+ EXPORT_SYMBOL(vfs_rename);
+ 
+-SYSCALL_DEFINE4(renameat, int, olddfd, const char __user *, oldname,
+-		int, newdfd, const char __user *, newname)
++SYSCALL_DEFINE5(renameat2, int, olddfd, const char __user *, oldname,
++		int, newdfd, const char __user *, newname, unsigned int, flags)
+ {
+ 	struct dentry *old_dir, *new_dir;
+ 	struct dentry *old_dentry, *new_dentry;
+@@ -3992,6 +3992,9 @@ SYSCALL_DEFINE4(renameat, int, olddfd, const char __user *, oldname,
+ 	struct filename *to;
+ 	int error;
+ 
++	if (flags & ~RENAME_NOREPLACE)
++		return -EINVAL;
++
+ 	from = user_path_parent(olddfd, oldname, &oldnd);
+ 	if (IS_ERR(from)) {
+ 		error = PTR_ERR(from);
+@@ -4056,6 +4059,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, const char __user *, oldname,
+ 	if (new_dentry == trap)
+ 		goto exit5;
+ 
++	error = -EEXIST;
++	if ((flags & RENAME_NOREPLACE) && new_dentry->d_inode)
++		goto exit5;
++
+ 	error = security_path_rename(&oldnd.path, old_dentry,
+ 				     &newnd.path, new_dentry);
+ 	if (error)
+@@ -4079,6 +4086,12 @@ exit:
+ 	return error;
+ }
+ 
++SYSCALL_DEFINE4(renameat, int, olddfd, const char __user *, oldname,
++		int, newdfd, const char __user *, newname)
++{
++	return sys_renameat2(olddfd, oldname, newdfd, newname, 0);
++}
++
+ SYSCALL_DEFINE2(rename, const char __user *, oldname, const char __user *, newname)
+ {
+ 	return sys_renameat(AT_FDCWD, oldname, AT_FDCWD, newname);
+diff --git a/include/asm-generic/unistd.h b/include/asm-generic/unistd.h
+index 6650520867d..cca835275de 100644
+--- a/include/asm-generic/unistd.h
++++ b/include/asm-generic/unistd.h
+@@ -691,6 +691,8 @@ __SC_COMP(__NR_process_vm_readv, sys_process_vm_readv, \
+ #define __NR_process_vm_writev 271
+ __SC_COMP(__NR_process_vm_writev, sys_process_vm_writev, \
+           compat_sys_process_vm_writev)
++#define __NR_renameat2 276
++__SYSCALL(__NR_renameat2, sys_renameat2)
+ #define __NR_seccomp 277
+ __SYSCALL(__NR_seccomp, sys_seccomp)
+ #define __NR_getrandom 278
+diff --git a/include/linux/fs.h b/include/linux/fs.h
+index 86009a424f9..8b2c050d994 100644
+--- a/include/linux/fs.h
++++ b/include/linux/fs.h
+@@ -36,6 +36,12 @@
+ #define SEEK_HOLE	4	/* seek to the next hole */
+ #define SEEK_MAX	SEEK_HOLE
+ 
++#ifndef RENAME_NOREPLACE
++#define RENAME_NOREPLACE	(1 << 0)	/* Dont overwrite target */
++#define RENAME_EXCHANGE		(1 << 1)	/* Exchange source and dest */
++#define RENAME_WHITEOUT		(1 << 2)	/* Whiteout source */
++#endif
++
+ struct fstrim_range {
+ 	__u64 start;
+ 	__u64 len;
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index 7d3db143a3d..43953a0af15 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -766,6 +766,7 @@ asmlinkage long sys_linkat(int olddfd, const char __user *oldname,
+ 			   int newdfd, const char __user *newname, int flags);
+ asmlinkage long sys_renameat(int olddfd, const char __user * oldname,
+ 			     int newdfd, const char __user * newname);
++asmlinkage long sys_renameat2(int olddfd, const char __user *oldname, int newdfd, const char __user *newname, unsigned int flags);
+ asmlinkage long sys_futimesat(int dfd, const char __user *filename,
+ 			      struct timeval __user *utimes);
+ asmlinkage long sys_faccessat(int dfd, const char __user *filename, int mode);
+diff --git a/include/linux/utsname.h b/include/linux/utsname.h
+index ae739d72638..1b9e0ab3306 100644
+--- a/include/linux/utsname.h
++++ b/include/linux/utsname.h
+@@ -97,9 +97,36 @@ static inline void uts_proc_notify(enum uts_proc proc)
+ }
+ #endif
+ 
++#ifdef CONFIG_ANDROID_TREBLE_SPOOF_KERNEL_VERSION
++static struct new_utsname utsname_spoofed;
++#endif
+ static inline struct new_utsname *utsname(void)
+ {
++#ifdef CONFIG_ANDROID_TREBLE_SPOOF_KERNEL_VERSION
++#ifdef CONFIG_ANDROID_TREBLE_BYPASS_KERNEL_VERSION_CHECKS
++	if (!strcmp(current->comm, "system_server") ||
++            !strcmp(current->comm, "zygote") ||
++	    !strcmp(current->comm, "bpfloader") ||
++            !strcmp(current->comm, "perfetto") ||
++            !strcmp(current->comm, "init"))
++	{
++#endif
++		char fake_release_prepended[64];
++
++		strcpy(fake_release_prepended, CONFIG_ANDROID_TREBLE_SPOOF_KERNEL_VERSION_PREFIX);
++	        strcat(fake_release_prepended, "-");
++		strcat(fake_release_prepended, current->nsproxy->uts_ns->name.release);
++		utsname_spoofed = current->nsproxy->uts_ns->name;
++		strcpy(utsname_spoofed.release, fake_release_prepended);
++
++		return &utsname_spoofed;
++#ifdef CONFIG_ANDROID_TREBLE_BYPASS_KERNEL_VERSION_CHECKS
++	} else
++                return &current->nsproxy->uts_ns->name;
++#endif
++#else
+ 	return &current->nsproxy->uts_ns->name;
++#endif
+ }
+ 
+ static inline struct new_utsname *init_utsname(void)
+diff --git a/init/Kconfig b/init/Kconfig
+index 0141381b752..2ae1bbd45db 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -869,6 +869,34 @@ config SCHED_AUTOGROUP
+ 	  desktop applications.  Task group autogeneration is currently based
+ 	  upon task session.
+ 
++config ANDROID_TREBLE_SPOOF_KERNEL_VERSION
++	bool "TREBLE/BPF: report arbitrary kernel version to userspace"
++	default n
++	help
++		TREBLE: Workaround for system crash due to kernel version older than 3.17.
++
++		Android ART requires Linux 3.17 to use memfd_create() syscall and
++		fails if the kernel is too old. We already have backported memfd_create()
++		so we can mimic to 3.17+ kernel and properly run GSIs.
++
++		BPF: Since Android 12 iptables has been replaced by eBPF programs
++                which require eBPF features backported only to Linux 4.9.
++                Since we have eBPF backport in our 3.10 kernel, we can pretend to be
++                4.9.y for userspace to load bpf progs and successfully boot OS.
++
++config ANDROID_TREBLE_BYPASS_KERNEL_VERSION_CHECKS
++        bool "Report custom kernel version only when needed"
++	depends on ANDROID_TREBLE_SPOOF_KERNEL_VERSION
++        default n
++        help
++                Spoof kernel version only for system_server, bpfloader and perfetto.
++                User will see a real kernel version in /proc/version and Settings->About phone.
++
++config ANDROID_TREBLE_SPOOF_KERNEL_VERSION_PREFIX
++        string "Kernel version to prepend to real one"
++        depends on ANDROID_TREBLE_SPOOF_KERNEL_VERSION
++        default "3.17"
++
+ config MM_OWNER
+ 	bool
+ 
+diff --git a/kernel/cgroup.c b/kernel/cgroup.c
+index b26c27d13cd..4e53a69ed3e 100644
+--- a/kernel/cgroup.c
++++ b/kernel/cgroup.c
+@@ -82,6 +82,8 @@
+ static DEFINE_MUTEX(cgroup_mutex);
+ static DEFINE_MUTEX(cgroup_root_mutex);
+ 
++static struct file_system_type compat_cgroup2_fs_type;
++
+ /*
+  * Generate an array of cgroup subsystem pointers. At boot time, this is
+  * populated up to CGROUP_BUILTIN_SUBSYS_COUNT, and modular subsystems are
+@@ -1510,11 +1512,20 @@ static struct dentry *cgroup_mount(struct file_system_type *fs_type,
+ 	struct super_block *sb;
+ 	struct cgroupfs_root *new_root;
+ 	struct inode *inode;
++	bool is_v2 = fs_type == &compat_cgroup2_fs_type;
+ 
+ 	/* First find the desired set of subsystems */
+-	mutex_lock(&cgroup_mutex);
+-	ret = parse_cgroupfs_options(data, &opts);
+-	mutex_unlock(&cgroup_mutex);
++	if(is_v2){
++	       ret = 0;
++	       memset(&opts, 0, sizeof(opts));
++	       opts.none = true;
++	}
++
++	else{
++	       mutex_lock(&cgroup_mutex);
++	       ret = parse_cgroupfs_options(data, &opts);
++	       mutex_unlock(&cgroup_mutex);
++	}
+ 	if (ret)
+ 		goto out_err;
+ 
+@@ -1702,6 +1713,12 @@ static struct file_system_type cgroup_fs_type = {
+ 	.kill_sb = cgroup_kill_sb,
+ };
+ 
++static struct file_system_type compat_cgroup2_fs_type = {
++	.name = "cgroup2",
++	.mount = cgroup_mount,
++	.kill_sb = cgroup_kill_sb,
++};
++
+ static struct kobject *cgroup_kobj;
+ 
+ static inline struct cgroup *__d_cgrp(struct dentry *dentry)
+@@ -4415,6 +4432,12 @@ int __init cgroup_init(void)
+ 		goto out;
+ 	}
+ 
++	err = register_filesystem(&compat_cgroup2_fs_type);
++	if (err < 0) {
++		kobject_put(cgroup_kobj);
++		goto out;
++	}
++
+ 	proc_create("cgroups", 0, NULL, &proc_cgroupstats_operations);
+ 
+ out:
+diff --git a/scripts/xz_wrap.sh b/scripts/xz_wrap.sh
+index 7a2d372f488..e1356f3e021 100755
+--- a/scripts/xz_wrap.sh
++++ b/scripts/xz_wrap.sh
+@@ -2,12 +2,6 @@
+ #
+ # This is a wrapper for xz to compress the kernel image using appropriate
+ # compression options depending on the architecture.
+-#
+-# Author: Lasse Collin <lasse.collin@tukaani.org>
+-#
+-# This file has been put into the public domain.
+-# You can do whatever you want with this file.
+-#
+ 
+ BCJ=
+ LZMA2OPTS=
+@@ -15,9 +9,14 @@ LZMA2OPTS=
+ case $SRCARCH in
+ 	x86)            BCJ=--x86 ;;
+ 	powerpc)        BCJ=--powerpc ;;
+-	ia64)           BCJ=--ia64; LZMA2OPTS=pb=4 ;;
++	ia64)           BCJ=--ia64; LZMA2OPTS=pb=4, ;;
+ 	arm)            BCJ=--arm ;;
+ 	sparc)          BCJ=--sparc ;;
+ esac
+ 
+-exec xz --check=crc32 $BCJ --lzma2=$LZMA2OPTS,dict=32MiB
++XZ_BIN=xz
++if [ -x /usr/bin/xz ]; then
++    XZ_BIN=/usr/bin/xz
++fi
++
++exec "$XZ_BIN" --check=crc32 $BCJ --lzma2=${LZMA2OPTS}dict=32MiB

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Manifest Debloat & Partition Budget Optimizer untuk Sony Xperia Z1 Compact (amami) -->
+<!-- Hanya menghapus aplikasi Lineage pihak ketiga non-AOSP agar tidak merusak gsi/Android.bp -->
+<manifest>
+  <!-- LineageOS apps non-esensial -->
+  <remove-project name="LineageOS/android_packages_apps_Jelly" />
+  <remove-project name="LineageOS/android_packages_apps_Recorder" />
+  <remove-project name="LineageOS/android_packages_apps_Seedvault" />
+  <remove-project name="LineageOS/android_packages_apps_Etar" />
+
+  <!-- Unused / Broken CAF chipsets in LineageOS 22 (SM8750 has missing proprietary display dependencies) -->
+  <remove-project name="LineageOS/android_vendor_qcom_opensource_display-core" />
+</manifest>

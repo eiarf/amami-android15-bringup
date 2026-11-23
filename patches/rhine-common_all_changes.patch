@@ -1,0 +1,293 @@
+diff --git a/BoardConfigCommon.mk b/BoardConfigCommon.mk
+index 02aa27d..c4e1ee3 100644
+--- a/BoardConfigCommon.mk
++++ b/BoardConfigCommon.mk
+@@ -22,13 +22,12 @@ BOARD_VENDOR_PLATFORM := rhine
+ PRODUCT_PLATFORM := rhine
+ 
+ # Kernel information
+-BOARD_KERNEL_IMAGE_NAME := zImage
++BOARD_KERNEL_IMAGE_NAME := zImage-dtb
+ BOARD_KERNEL_BASE     := 0x00000000
+ BOARD_KERNEL_PAGESIZE := 2048
+-BOARD_KERNEL_CMDLINE  := androidboot.hardware=qcom user_debug=31 msm_rtb.filter=0x3b7 ehci-hcd.park=3 androidboot.bootdevice=msm_sdcc.1 vmalloc=300M dwc3.maximum_speed=high dwc3_msm.prop_chg_detect=Y
+-BOARD_KERNEL_CMDLINE  += androidboot.selinux=permissive
+-BOARD_MKBOOTIMG_ARGS  := --ramdisk_offset 0x02000000 --tags_offset 0x01E00000
+-BOARD_KERNEL_SEPARATED_DT := true
++BOARD_KERNEL_CMDLINE  := androidboot.hardware=qcom user_debug=31 msm_rtb.filter=0x37 ehci-hcd.park=3 androidboot.bootdevice=msm_sdcc.1 dwc3.maximum_speed=high dwc3_msm.prop_chg_detect=Y androidboot.selinux=permissive
++BOARD_MKBOOTIMG_ARGS  := --ramdisk_offset 0x01000000 --tags_offset 0x01E00000
++# BOARD_KERNEL_SEPARATED_DT := true
+ 
+ # ANT+
+ BOARD_ANT_WIRELESS_DEVICE := "qualcomm-smd"
+@@ -66,18 +65,16 @@ SELINUX_IGNORE_NEVERALLOWS := true
+ # Shims
+ TARGET_LD_SHIM_LIBS += \
+ 	/system/vendor/bin/credmgrd|/system/vendor/lib/libshims_signal.so \
+-	/system/vendor/bin/iddd|/system/vendor/lib/libshims_idd.so \
+ 	/system/vendor/bin/suntrold|/system/vendor/lib/libshims_signal.so \
+ 	/system/lib/hw/camera.vendor.qcom.so|/system/vendor/lib/libshim_camera.so \
+-	/system/lib/hw/camera.vendor.qcom.so|/system/vendor/lib/libshim_cald.so \
++	/system/lib/hw/camera.vendor.qcom.so|/system/lib/libshim_cald.so \
+ 	/system/lib/hw/camera.vendor.qcom.so|libsensor.so \
+-	/system/lib/libcald_pal.so|/system/vendor/lib/libshim_cald.so \
+-	/system/lib/libcammw.so|/system/vendor/lib/libshim_cald.so \
++	/system/lib/libcald_pal.so|/system/lib/libshim_cald.so \
++	/system/lib/libcammw.so|/system/lib/libshim_cald.so \
+ 	/system/lib/libcammw.so|libsensor.so \
+ 	/system/lib/libsomc_chokoballpal.so|/system/vendor/lib/libshim_camera.so \
+ 	/system/vendor/bin/mm-qcamera-daemon|/system/vendor/lib/libc_util.so \
+ 	/system/vendor/bin/mm-qcamera-daemon|libandroid.so \
+-	/system/vendor/bin/iddd|libboringssl-compat.so \
+ 
+ # Platform props
+ TARGET_SYSTEM_PROP += device/sony/rhine-common/system.prop
+@@ -97,18 +94,21 @@ WIFI_DRIVER_FW_PATH_STA          := "sta"
+ WIFI_DRIVER_FW_PATH_AP           := "ap"
+ 
+ # RIL
+-BOARD_PROVIDES_LIBRIL := true
++#BOARD_PROVIDES_LIBRIL := true
+ 
+ # Filesystem
+ BOARD_FLASH_BLOCK_SIZE := 131072
+ TARGET_USERIMAGES_USE_EXT4 := true
+ TARGET_USERIMAGES_USE_F2FS := true
+ 
++# OTA
++AB_OTA_UPDATER := false
++
+ # Recovery
+ TARGET_RECOVERY_FSTAB := device/sony/rhine-common/rootdir/fstab.full
+-TARGET_RECOVERY_PIXEL_FORMAT := "RGBX_8888"
++TARGET_RECOVERY_PIXEL_FORMAT := RGBX_8888
+ BOARD_HAS_NO_SELECT_BUTTON := true
+-BOARD_USE_CUSTOM_RECOVERY_FONT := \"roboto_23x41.h\"
++# BOARD_USE_CUSTOM_RECOVERY_FONT := roboto_23x41.h
+ 
+ # Releasetools
+ TARGET_RELEASETOOLS_EXTENSIONS := device/sony/rhine-common
+diff --git a/init/init_rhine.cpp b/init/init_rhine.cpp
+index 39afd16..64ff43b 100644
+--- a/init/init_rhine.cpp
++++ b/init/init_rhine.cpp
+@@ -16,26 +16,24 @@
+  */
+ 
+ #include <stdlib.h>
++#include <string>
++#include <vector>
+ 
+-#include "vendor_init.h"
+-#include "property_service.h"
+-#include "log/log.h"
+-#include "util.h"
+-
++#include <android-base/file.h>
+ #include <android-base/properties.h>
+-#include <sys/system_properties.h>
+-
+-static void import_kernel_nv(const std::string& key, const std::string& value)
+-{
+-    if (key.empty()) return;
++#include <android-base/strings.h>
+ 
+-    // We only want the bootloader version
+-    if (key == "oemandroidboot.s1boot") {
+-		android::base::SetProperty("ro.boot.oemandroidboot.s1boot", value.c_str());
+-    }
+-}
++#include "vendor_init.h"
+ 
+ void vendor_load_properties()
+ {
+-    android::init::ImportKernelCmdline(import_kernel_nv);
++    std::string cmdline;
++    if (android::base::ReadFileToString("/proc/cmdline", &cmdline)) {
++        for (const auto& entry : android::base::Split(android::base::Trim(cmdline), " ")) {
++            std::vector<std::string> pieces = android::base::Split(entry, "=");
++            if (pieces.size() == 2 && pieces[0] == "oemandroidboot.s1boot") {
++                android::base::SetProperty("ro.boot.oemandroidboot.s1boot", pieces[1]);
++            }
++        }
++    }
+ }
+diff --git a/libshims/Android.mk b/libshims/Android.mk
+index fa7d2b1..07f3a10 100644
+--- a/libshims/Android.mk
++++ b/libshims/Android.mk
+@@ -25,7 +25,8 @@ LOCAL_SRC_FILES := \
+ 
+ LOCAL_C_INCLUDES := \
+     $(LOCAL_PATH)/include \
+-    system/core/libutils
++    system/core/libutils \
++    system/core/libutils/binder
+ 
+ LOCAL_SHARED_LIBRARIES := \
+     libcutils \
+@@ -37,7 +38,7 @@ LOCAL_SHARED_LIBRARIES := \
+ 
+ LOCAL_MODULE := libshim_cald
+ 
+-LOCAL_PROPRIETARY_MODULE := true
++#LOCAL_PROPRIETARY_MODULE := true
+ LOCAL_MODULE_TAGS := optional
+ LOCAL_MODULE_CLASS := SHARED_LIBRARIES
+ 
+@@ -66,7 +67,8 @@ LOCAL_SRC_FILES := \
+ 
+ LOCAL_C_INCLUDES := \
+     $(LOCAL_PATH)/include \
+-    system/core/libutils
++    system/core/libutils \
++    system/core/libutils/binder
+ 
+ LOCAL_SHARED_LIBRARIES := \
+     libcutils \
+@@ -77,6 +79,7 @@ LOCAL_SHARED_LIBRARIES := \
+     libutils
+ 
+ LOCAL_MODULE := libshim_camera
++LOCAL_HEADER_LIBRARIES := libhardware_headers
+ 
+ LOCAL_PROPRIETARY_MODULE := true
+ LOCAL_MODULE_TAGS := optional
+diff --git a/libshims/gui/SensorManager.cpp b/libshims/gui/SensorManager.cpp
+index 2209fe5..e94944f 100644
+--- a/libshims/gui/SensorManager.cpp
++++ b/libshims/gui/SensorManager.cpp
+@@ -163,7 +163,7 @@ sp<SensorEventQueue> SensorManager::createEventQueue()
+             ALOGE("createEventQueue: connection is NULL. SensorService died.");
+             continue;
+         }
+-        queue = new SensorEventQueue(connection);
++        queue = new SensorEventQueue(connection, *this, String8("packageName"));
+         break;
+     }
+     return queue;
+diff --git a/libshims/ui/GraphicBufferAllocator.cpp b/libshims/ui/GraphicBufferAllocator.cpp
+index 4f93fb6..640f39b 100644
+--- a/libshims/ui/GraphicBufferAllocator.cpp
++++ b/libshims/ui/GraphicBufferAllocator.cpp
+@@ -87,7 +87,7 @@ void GraphicBufferAllocator::dumpToSystemLog()
+ {
+     String8 s;
+     GraphicBufferAllocator::getInstance().dump(s);
+-    ALOGD("%s", s.string());
++    ALOGD("%s", s.c_str());
+ }
+ 
+ status_t GraphicBufferAllocator::alloc(uint32_t width, uint32_t height,
+diff --git a/nfc/Android.mk b/nfc/Android.mk
+index 90a82a4..ea3ea70 100644
+--- a/nfc/Android.mk
++++ b/nfc/Android.mk
+@@ -22,4 +22,5 @@ LOCAL_SRC_FILES := nfc_hw.c
+ LOCAL_SHARED_LIBRARIES := liblog libcutils
+ LOCAL_MODULE_TAGS := optional
+ 
++LOCAL_HEADER_LIBRARIES := libhardware_headers
+ include $(BUILD_SHARED_LIBRARY)
+diff --git a/nfc/nfc_hw.c b/nfc/nfc_hw.c
+index f3a75cf..86dc106 100644
+--- a/nfc/nfc_hw.c
++++ b/nfc/nfc_hw.c
+@@ -14,6 +14,7 @@
+  * limitations under the License.
+ */
+ 
++#include <stdlib.h>
+ #include <errno.h>
+ #include <string.h>
+ 
+diff --git a/releasetools.py b/releasetools.py
+index e02aa9b..ef9b7c2 100644
+--- a/releasetools.py
++++ b/releasetools.py
+@@ -24,5 +24,5 @@ def FullOTA_InstallEnd(self):
+   if TARGET_DEVICE == "honami" or TARGET_DEVICE == "togari":
+     self.output_zip.write(os.path.join(TARGET_DIR, "c6x02.sh"), "c6x02.sh")
+     self.script.AppendExtra('package_extract_file("c6x02.sh", "/tmp/c6x02.sh");')
+-    self.script.AppendExtra('set_metadata("/tmp/c6x02.sh", "uid", 0, "gid", 0, "mode", 0755);')
++    self.script.AppendExtra('set_metadata("/tmp/c6x02.sh", "uid", 0, "gid", 0, "mode", 0o755);')
+     self.script.AppendExtra('run_program("/tmp/c6x02.sh");')
+diff --git a/rhine.mk b/rhine.mk
+index fab8b20..6bd6657 100644
+--- a/rhine.mk
++++ b/rhine.mk
+@@ -12,7 +12,7 @@
+ # See the License for the specific language governing permissions and
+ # limitations under the License.
+ 
+-$(call inherit-product, vendor/lineage/build/target/product/product_launched_with_j_mr2.mk)
++$(call inherit-product, build/make/target/product/product_launched_with_k.mk)
+ 
+ # inherit from msm8974-common
+ $(call inherit-product, device/sony/msm8974-common/msm8974.mk)
+@@ -79,9 +79,6 @@ PRODUCT_PACKAGES += \
+ PRODUCT_PACKAGES += \
+    libbt-vendor
+ 
+-# BoringSSL hacks
+-PRODUCT_PACKAGES += \
+-    libboringssl-compat
+ 
+ # Camera
+ PRODUCT_PACKAGES += \
+@@ -101,6 +98,10 @@ PRODUCT_COPY_FILES += \
+     $(COMMON_PATH)/rootdir/init.sony.usb.rc:root/init.sony.usb.rc \
+     $(COMMON_PATH)/rootdir/init.recovery.qcom.rc:root/init.recovery.qcom.rc \
+     $(COMMON_PATH)/rootdir/fstab.qcom:root/fstab.qcom \
++    $(COMMON_PATH)/rootdir/fstab.qcom:$(TARGET_COPY_OUT_RAMDISK)/fstab.qcom \
++    $(COMMON_PATH)/rootdir/fstab.qcom:$(TARGET_COPY_OUT_RAMDISK)/first_stage_ramdisk/fstab.qcom \
++    $(COMMON_PATH)/rootdir/fstab.qcom:$(TARGET_COPY_OUT_RAMDISK)/first_stage_ramdisk/system/etc/fstab.qcom \
++    $(COMMON_PATH)/rootdir/fstab.qcom:$(TARGET_COPY_OUT_VENDOR)/etc/fstab.qcom \
+     $(COMMON_PATH)/rootdir/init.qcom.rc:root/init.qcom.rc \
+     $(COMMON_PATH)/rootdir/init.camera.rc:root/init.camera.rc \
+     $(COMMON_PATH)/rootdir/init.qcom.power.rc:root/init.qcom.power.rc \
+@@ -169,7 +170,7 @@ PRODUCT_COPY_FILES += \
+ 
+ # VNDK
+ PRODUCT_COPY_FILES += \
+-    prebuilts/vndk/v28/arm/arch-arm-armv7-a-neon/shared/vndk-sp/libbase.so:$(TARGET_COPY_OUT_VENDOR)/lib/libbase-v28.so
++    prebuilts/vndk/v30/arm/arch-arm-armv7-a-neon/shared/vndk-sp/libbase.so:$(TARGET_COPY_OUT_VENDOR)/lib/libbase-v28.so
+ 
+ # WiFi
+ PRODUCT_PACKAGES += \
+diff --git a/rootdir/fstab.full b/rootdir/fstab.full
+index 1445e4d..5967c88 100644
+--- a/rootdir/fstab.full
++++ b/rootdir/fstab.full
+@@ -8,8 +8,8 @@
+ /dev/block/platform/msm_sdcc.1/by-name/system      /system    ext4  ro,barrier=1                                   wait
+ /dev/block/platform/msm_sdcc.1/by-name/cache       /cache     f2fs  noatime,nosuid,nodev,rw,inline_xattr                                      wait,check
+ /dev/block/platform/msm_sdcc.1/by-name/cache       /cache     ext4  noatime,nosuid,nodev,barrier=1,data=ordered,noauto_da_alloc,discard       wait,check
+-/dev/block/platform/msm_sdcc.1/by-name/userdata    /data      f2fs  noatime,nosuid,nodev,rw,inline_xattr                                      wait,check,formattable,encryptable=footer,length=-16384
+-/dev/block/platform/msm_sdcc.1/by-name/userdata    /data      ext4  noatime,nosuid,nodev,barrier=1,data=ordered,noauto_da_alloc,discard       wait,check,encryptable=footer,length=-16384
++/dev/block/platform/msm_sdcc.1/by-name/userdata    /data      f2fs  noatime,nosuid,nodev,rw,inline_xattr                                      wait,check,formattable
++/dev/block/platform/msm_sdcc.1/by-name/userdata    /data      ext4  noatime,nosuid,nodev,barrier=1,data=ordered,noauto_da_alloc,discard       wait,check
+ tmpfs                                              /idd       tmpfs size=8M,nosuid,nodev,noatime,noexec                                       defaults,notrim
+ /dev/block/platform/msm_sdcc.1/by-name/apps_log    /misc      emmc  defaults                                                                  defaults
+ 
+diff --git a/rootdir/fstab.qcom b/rootdir/fstab.qcom
+index 1837993..10781da 100644
+--- a/rootdir/fstab.qcom
++++ b/rootdir/fstab.qcom
+@@ -6,12 +6,14 @@
+ # NOTE: /system partition is now early-mounted and the fstab entry is specified in device tree:
+ #       /proc/device-tree/firmware/android/fstab/system
+ 
++/dev/block/platform/msm_sdcc.1/by-name/system       /system    ext4  ro,barrier=1,discard                                                      wait,first_stage_mount
++
+ /dev/block/platform/msm_sdcc.1/by-name/boot        /boot      emmc  defaults                                       recoveryonly
+ /dev/block/platform/msm_sdcc.1/by-name/FOTAKernel  /recovery  emmc  defaults                                       recoveryonly
+ /dev/block/platform/msm_sdcc.1/by-name/cache       /cache     f2fs  noatime,nosuid,nodev,rw,inline_xattr                                      wait,check
+ /dev/block/platform/msm_sdcc.1/by-name/cache       /cache     ext4  noatime,nosuid,nodev,barrier=1,data=ordered,noauto_da_alloc,discard       wait,check
+-/dev/block/platform/msm_sdcc.1/by-name/userdata    /data      f2fs  noatime,nosuid,nodev,rw,inline_xattr                                      wait,check,formattable,encryptable=footer,length=-16384
+-/dev/block/platform/msm_sdcc.1/by-name/userdata    /data      ext4  noatime,nosuid,nodev,barrier=1,data=ordered,noauto_da_alloc,discard       wait,check,encryptable=footer,length=-16384
++/dev/block/platform/msm_sdcc.1/by-name/userdata    /data      f2fs  noatime,nosuid,nodev,rw,inline_xattr                                      wait,check,formattable
++/dev/block/platform/msm_sdcc.1/by-name/userdata    /data      ext4  noatime,nosuid,nodev,barrier=1,data=ordered,noauto_da_alloc,discard       wait,check
+ /dev/block/platform/msm_sdcc.1/by-name/apps_log    /misc      emmc  defaults                                                                  defaults
+ 
+ /devices/msm_sdcc.2/mmc_host*                      auto       auto  defaults  voldmanaged=sdcard1:auto,encryptable=userdata

@@ -1,0 +1,34 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+Subject: [PATCH] hardware/qcom: Fix QTI display defaults resolution for Soong blueprint
+
+1. Add hardware/qcom/sm7250/display namespace import to os_pickup_qssi.bp
+2. Define qtidisplay_defaults_headless alias in hardware/qcom/sm7250/display/Android.bp
+
+---
+ common/os_pickup_qssi.bp | 1 +
+ sm7250/display/Android.bp | 5 +++++
+ 2 files changed, 6 insertions(+)
+
+diff --git a/common/os_pickup_qssi.bp b/common/os_pickup_qssi.bp
+--- a/common/os_pickup_qssi.bp
++++ b/common/os_pickup_qssi.bp
+@@ -2,5 +2,6 @@ soong_namespace {
+     imports: [
+         "vendor/qcom/opensource/commonsys-intf/display",
+         "vendor/qcom/opensource/display",
++        "hardware/qcom/sm7250/display",
+     ],
+ }
+diff --git a/sm7250/display/Android.bp b/sm7250/display/Android.bp
+--- a/sm7250/display/Android.bp
++++ b/sm7250/display/Android.bp
+@@ -95,3 +95,8 @@ qtidisplay_cc_defaults {
+         },
+     },
+ }
++
++qtidisplay_cc_defaults {
++    name: "qtidisplay_defaults_headless",
++    defaults: ["qtidisplay_defaults"],
++}
+-- 

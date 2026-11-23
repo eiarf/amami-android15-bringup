@@ -1,0 +1,25 @@
+From 0000000000000000000000000000000000000003 Mon Sep 17 00:00:00 2001
+From: Senior BSP Engineer <bsp@developer.local>
+Date: Mon, 23 Nov 2026 00:00:00 +0000
+Subject: [PATCH] core: Relax artifact path requirements for 32-bit legacy boards
+
+Legacy boards (armv7-a-neon) using proprietary binary vendor blobs require
+relaxed artifact path requirements to avoid build aborts during target build.
+
+---
+ core/main.mk | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/core/main.mk b/core/main.mk
+index 1111111..2222222 100644
+--- a/core/main.mk
++++ b/core/main.mk
+@@ -1200,6 +1200,10 @@ ifeq ($(TARGET_ARCH),arm)
+   PRODUCT_ENFORCE_ARTIFACT_PATH_REQUIREMENTS := relaxed
+ endif
+ 
++ifeq ($(TARGET_BOARD_PLATFORM),msm8974)
++  PRODUCT_ENFORCE_ARTIFACT_PATH_REQUIREMENTS := relaxed
++endif
++
+-- 

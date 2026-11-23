@@ -1,0 +1,38 @@
+From 0000000000000000000000000000000000000001 Mon Sep 17 00:00:00 2001
+From: Senior BSP Engineer <bsp@developer.local>
+Date: Mon, 23 Nov 2026 00:00:00 +0000
+Subject: [PATCH] bpfloader: Ignore BPF loader failure gracefully on legacy kernels
+
+Legacy 3.4/3.10 kernels do not have the modern bpf() syscall or map support
+required by Android 14/15. On downstream msm8974 kernels, bpfloader failure
+causes init to halt or loop. This patch treats failure as a warning and signals
+completion so boot can continue.
+
+---
+ bpfloader/BpfLoader.cpp | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/bpfloader/BpfLoader.cpp b/bpfloader/BpfLoader.cpp
+index 1111111..2222222 100644
+--- a/bpfloader/BpfLoader.cpp
++++ b/bpfloader/BpfLoader.cpp
+@@ -200,8 +200,10 @@ int main(int argc, char** argv) {
+     if (!android::bpf::hasBpfSupport()) {
+-        ALOGE("Kernel does not support BPF, halting boot.");
+-        return 1;
++        ALOGW("Kernel does not support modern BPF (legacy kernel 3.4 detected). Continuing boot without BPF offload.");
++        android::base::SetProperty("bpf.progs_loaded", "1");
++        return 0;
+     }
+ 
+     // Load BPF programs
+     if (android::bpf::loadProgDefs() != 0) {
+-        ALOGE("Failed to load BPF programs");
+-        return 1;
++        ALOGW("Failed to load BPF programs on legacy kernel. Ignoring failure.");
+     }
+ 
+     android::base::SetProperty("bpf.progs_loaded", "1");
+     return 0;
+ }
+-- 
