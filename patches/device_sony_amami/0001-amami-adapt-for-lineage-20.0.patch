@@ -1,0 +1,100 @@
+diff --git a/BoardConfig.mk b/BoardConfig.mk
+index a1f154d..5651e66 100644
+--- a/BoardConfig.mk
++++ b/BoardConfig.mk
+@@ -25,19 +25,34 @@ TARGET_SPECIFIC_HEADER_PATH += device/sony/amami/include
+ 
+ BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := device/sony/amami/bluetooth
+ 
+-# Kernel properties
++# Kernel properties (S1Boot verified: appended DTB + 0x01000000 ramdisk, no earlyprintk/vmalloc=300M)
+ TARGET_KERNEL_CONFIG := lineageos_rhine_amami_row_defconfig
++BOARD_KERNEL_IMAGE_NAME := zImage-dtb
++BOARD_KERNEL_SEPARATED_DT := false
++BOARD_MKBOOTIMG_ARGS := --ramdisk_offset 0x01000000 --tags_offset 0x01E00000
++BOARD_KERNEL_CMDLINE := androidboot.hardware=qcom user_debug=31 msm_rtb.filter=0x37 ehci-hcd.park=3 androidboot.bootdevice=msm_sdcc.1 dwc3.maximum_speed=high dwc3_msm.prop_chg_detect=Y androidboot.selinux=permissive
+ 
+-# Partition information
++# Partition information (Verified physical mmcblk0 limits)
+ BOARD_VOLD_MAX_PARTITIONS := 26
+ 
+-BOARD_BOOTIMAGE_PARTITION_SIZE := 0x01400000
+-BOARD_RECOVERYIMAGE_PARTITION_SIZE := 0x01400000
++BOARD_BOOTIMAGE_PARTITION_SIZE := 20971520
++BOARD_RECOVERYIMAGE_PARTITION_SIZE := 20971520
+ BOARD_SYSTEMIMAGE_PARTITION_SIZE := 2436890624
+ BOARD_USERDATAIMAGE_PARTITION_SIZE := 12891175936
+ BOARD_CACHEIMAGE_PARTITION_SIZE := 209715200
+ 
+-#Recovery
++BOARD_SYSTEMIMAGE_FILE_SYSTEM_TYPE := ext4
++BOARD_USERDATAIMAGE_FILE_SYSTEM_TYPE := f2fs
++BOARD_CACHEIMAGE_FILE_SYSTEM_TYPE := ext4
++
++# Non-A/B & Verified Boot disabled for legacy S1Boot
++AB_OTA_UPDATER := false
++BOARD_AVB_ENABLE := false
++
++# Low-RAM / Legacy 32-bit partition budget
++MALLOC_SVELTE := true
++
++# Recovery
+ BOARD_USE_CUSTOM_RECOVERY_FONT := \"roboto_15x24.h\"
+ 
+ # Security patch level
+diff --git a/bluetooth/bdroid_buildcfg.h b/bluetooth/bdroid_buildcfg.h
+index 821902b..d5ad486 100644
+--- a/bluetooth/bdroid_buildcfg.h
++++ b/bluetooth/bdroid_buildcfg.h
+@@ -28,5 +28,6 @@
+ #define MAX_L2CAP_CHANNELS    14
+ // skips conn update at conn completion
+ #define BTA_BLE_SKIP_CONN_UPD  TRUE
++#define BLE_VND_INCLUDED FALSE
+ 
+ #endif
+diff --git a/lineage.dependencies b/lineage.dependencies
+index c7efa09..0d4f101 100644
+--- a/lineage.dependencies
++++ b/lineage.dependencies
+@@ -1,7 +1,2 @@
+ [
+-  {
+-    "repository": "AICP/device_sony_rhine-common",
+-    "target_path": "device/sony/rhine-common",
+-    "branch": "o8.1"
+-  }
+ ]
+diff --git a/lineage_amami.mk b/lineage_amami.mk
+index a00429e..d13d84c 100644
+--- a/lineage_amami.mk
++++ b/lineage_amami.mk
+@@ -3,8 +3,9 @@ $(call inherit-product, vendor/lineage/config/common_full_phone.mk)
+ 
+ $(call inherit-product, device/sony/amami/full_amami.mk)
+ 
+-PRODUCT_BUILD_PROP_OVERRIDES += PRODUCT_NAME=D5503
+-PRODUCT_BUILD_PROP_OVERRIDES += PRIVATE_BUILD_DESC="D5503-user 5.1.1 14.6.A.1.236 2031203603 release-keys"
++PRODUCT_BUILD_PROP_OVERRIDES += \
++    PRODUCT_NAME=D5503 \
++    PRIVATE_BUILD_DESC="D5503-user 5.1.1 14.6.A.1.236 2031203603 release-keys"
+ 
+ BUILD_FINGERPRINT := Sony/D5503/D5503:5.1.1/14.6.A.1.236/2031203603:user/release-keys
+ 
+@@ -14,3 +15,4 @@ PRODUCT_DEVICE := amami
+ # Boot animation
+ TARGET_SCREEN_HEIGHT := 1280
+ TARGET_SCREEN_WIDTH := 720
++PRODUCT_ENFORCE_ARTIFACT_PATH_REQUIREMENTS := relaxed
+diff --git a/system.prop b/system.prop
+index e15a781..6940ea4 100644
+--- a/system.prop
++++ b/system.prop
+@@ -15,3 +15,7 @@ ro.semc.product.device=D55
+ ro.semc.version.cust=1279-6214
+ ro.semc.version.cust_revision=R3D
+ 
++# Legacy FunctionFS ADB for LineageOS-UL (kernel 3.4)
++ro.adb.nonblocking_ffs=0
++persist.adb.nonblocking_ffs=0
++

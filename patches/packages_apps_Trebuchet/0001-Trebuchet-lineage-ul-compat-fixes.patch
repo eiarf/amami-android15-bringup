@@ -1,0 +1,40 @@
+diff --git a/quickstep/src/com/android/quickstep/QuickstepProcessInitializer.java b/quickstep/src/com/android/quickstep/QuickstepProcessInitializer.java
+index 50066bb..a6a36e9 100644
+--- a/quickstep/src/com/android/quickstep/QuickstepProcessInitializer.java
++++ b/quickstep/src/com/android/quickstep/QuickstepProcessInitializer.java
+@@ -78,13 +78,6 @@ public class QuickstepProcessInitializer extends MainProcessInitializer {
+     }
+ 
+     private void setupImageDecoder(Context context) {
+-        // Limit the max memory usage.
+-        int maxMemoryMb = context.getResources().getInteger(R.integer.max_launcher_memory_mb);
+-        long maxMemoryBytes = maxMemoryMb * 1024L * 1024L;
+-        // Get the allowed mime types from the resources.
+-        Set<String> allowedMimeTypes = Set.of(context.getResources().getStringArray(
+-                R.array.allowed_image_mime_types));
+-        ImageDecoder.setDefaultProcessListener(
+-                new LauncherProcessImageListener(maxMemoryBytes, allowedMimeTypes));
++        // No-op for standard Android 13 ImageDecoder
+     }
+ }
+diff --git a/quickstep/src/com/android/quickstep/SystemUiProxy.java b/quickstep/src/com/android/quickstep/SystemUiProxy.java
+index 4cdf22a..2f9d21a 100644
+--- a/quickstep/src/com/android/quickstep/SystemUiProxy.java
++++ b/quickstep/src/com/android/quickstep/SystemUiProxy.java
+@@ -148,15 +148,8 @@ public class SystemUiProxy implements ISystemUiProxy {
+         }
+     }
+ 
+-    @Override
+     public void onKeyEvent(int keycode) {
+-        if (mSystemUiProxy != null) {
+-            try {
+-                mSystemUiProxy.onKeyEvent(keycode);
+-            } catch (RemoteException e) {
+-                Log.w(TAG, "Failed call onKeyEvent", e);
+-            }
+-        }
++        // Not supported in this SystemUI
+     }
+ 
+     @Override

@@ -1,0 +1,97 @@
+diff --git a/arch/arm/boot/compressed/libfdt_env.h b/arch/arm/boot/compressed/libfdt_env.h
+index 799b5753..f8d79753 100644
+--- a/arch/arm/boot/compressed/libfdt_env.h
++++ b/arch/arm/boot/compressed/libfdt_env.h
+@@ -6,6 +6,10 @@
+ #include <linux/string.h>
+ #include <asm/byteorder.h>
+ 
++typedef __be16 fdt16_t;
++typedef __be32 fdt32_t;
++typedef __be64 fdt64_t;
++
+ #define fdt16_to_cpu(x)		be16_to_cpu(x)
+ #define cpu_to_fdt16(x)		cpu_to_be16(x)
+ #define fdt32_to_cpu(x)		be32_to_cpu(x)
+diff --git a/arch/arm/configs/lineageos_rhine_amami_row_defconfig b/arch/arm/configs/lineageos_rhine_amami_row_defconfig
+index 45f99696..602856a7 100644
+--- a/arch/arm/configs/lineageos_rhine_amami_row_defconfig
++++ b/arch/arm/configs/lineageos_rhine_amami_row_defconfig
+@@ -30,7 +30,6 @@ CONFIG_RD_LZMA=y
+ CONFIG_PANIC_TIMEOUT=5
+ CONFIG_KALLSYMS_ALL=y
+ CONFIG_EMBEDDED=y
+-# CONFIG_SLUB_DEBUG is not set
+ CONFIG_PROFILING=y
+ CONFIG_OPROFILE=y
+ CONFIG_PARTITION_ADVANCED=y
+@@ -635,3 +634,24 @@ CONFIG_CRYPTO_AES_ARM_BS=y
+ CONFIG_CRYPTO_TWOFISH=y
+ CONFIG_CRYPTO_DEV_QCE=y
+ CONFIG_CRYPTO_DEV_QCEDEV=y
++
++# Android 13 cgroups (from MakeDecisionWorth lineage-20.0 aa10daf4)
++CONFIG_CGROUP_DEVICE=y
++CONFIG_CPUSETS=y
++CONFIG_PROC_PID_CPUSET=y
++CONFIG_CGROUP_MEM_RES_CTLR_KMEM=y
++CONFIG_CGROUP_PERF=y
++CONFIG_BLK_CGROUP=y
++
++# Debugging & /proc/config.gz (guideline.md Phase 1 + android_os_Debug_isVmapStack)
++CONFIG_IKCONFIG_PROC=y
++CONFIG_SLUB_DEBUG=y
++CONFIG_ANDROID_PERSISTENT_RAM=y
++
++# Sony amami S1Boot Appended DTB (verified against physical fotakernel)
++CONFIG_ARM_APPENDED_DTB=y
++CONFIG_ARM_ATAG_DTB_COMPAT=y
++CONFIG_BUILD_ARM_APPENDED_DTB_IMAGE_NAMES="msm8974-v2.0-1-rhine_amami_row msm8974-v2.2-rhine_amami_row"
++
++# Ramdisk XZ option (in case recovery ramdisk grows near 20 MiB)
++CONFIG_RD_XZ=y
+diff --git a/mm/vmpressure.c b/mm/vmpressure.c
+index e589f7a0..cea3789c 100644
+--- a/mm/vmpressure.c
++++ b/mm/vmpressure.c
+@@ -237,7 +237,8 @@ void vmpressure_memcg(gfp_t gfp, struct mem_cgroup *memcg,
+ {
+ 	struct vmpressure *vmpr = memcg_to_vmpressure(memcg);
+ 
+-	BUG_ON(!vmpr);
++	if (!vmpr)
++		return;
+ 
+ 	/*
+ 	 * Here we only want to account pressure that userland is able to
+@@ -383,7 +384,8 @@ int vmpressure_register_event(struct cgroup *cg, struct cftype *cft,
+ 	struct vmpressure_event *ev;
+ 	int level;
+ 
+-	BUG_ON(!vmpr);
++	if (!vmpr)
++		return -EINVAL;
+ 
+ 	for (level = 0; level < VMPRESSURE_NUM_LEVELS; level++) {
+ 		if (!strcmp(vmpressure_str_levels[level], args))
+diff --git a/scripts/xz_wrap.sh b/scripts/xz_wrap.sh
+index 7a2d372f..4fff055a 100755
+--- a/scripts/xz_wrap.sh
++++ b/scripts/xz_wrap.sh
+@@ -15,9 +15,14 @@ LZMA2OPTS=
+ case $SRCARCH in
+ 	x86)            BCJ=--x86 ;;
+ 	powerpc)        BCJ=--powerpc ;;
+-	ia64)           BCJ=--ia64; LZMA2OPTS=pb=4 ;;
++	ia64)           BCJ=--ia64; LZMA2OPTS=pb=4, ;;
+ 	arm)            BCJ=--arm ;;
+ 	sparc)          BCJ=--sparc ;;
+ esac
+ 
+-exec xz --check=crc32 $BCJ --lzma2=$LZMA2OPTS,dict=32MiB
++XZ_BIN=xz
++if [ -x /usr/bin/xz ]; then
++	XZ_BIN=/usr/bin/xz
++fi
++
++exec "$XZ_BIN" --check=crc32 $BCJ --lzma2=${LZMA2OPTS}dict=32MiB

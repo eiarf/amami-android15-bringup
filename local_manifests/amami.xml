@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  LineageOS 20.0 (Android 13 / LineageOS-UL) local manifest for Sony Xperia Z1 Compact (amami)
+  Base tree: repo init -u https://github.com/LineageOS-UL/android.git -b lineage-20.0 git-lfs
+  Sources:
+    - Device amami: lin18-microG (patched for A13 via patches/device_sony_amami/)
+    - Rhine/MSM8974 common + Kernel 3.4: sony-togari-dev lineage-20.0 (patched for amami S1Boot + A13 cgroups)
+    - Sony helpers & vendor: LineageOS + lin18-microG
+    Note: hardware/sony/timekeep, device/qcom/sepolicy-legacy, system/tools/dtbtool,
+          external/connectivity, and hardware/qcom-caf/msm8974/* are already provided
+          by LineageOS-UL/android (lineage-20.0).
+-->
+<manifest>
+  <remote name="gh" fetch="https://github.com/" />
+
+  <!-- Device Trees (amami + Rhine + MSM8974 + common-caf) -->
+  <project name="lin18-microG/android_device_sony_amami" path="device/sony/amami" remote="gh" revision="lineage-18.1" />
+  <project name="sony-togari-dev/android_device_sony_rhine-common" path="device/sony/rhine-common" remote="gh" revision="lineage-20.0" />
+  <project name="sony-togari-dev/android_device_sony_msm8974-common" path="device/sony/msm8974-common" remote="gh" revision="lineage-20.0" />
+  <project name="sony-togari-dev/android_device_sony_common" path="device/sony/common-caf" remote="gh" revision="lineage-18.1" />
+
+  <!-- Kernel Source (MSM8974 3.4.113 with Rhine/amami DTS & A13 backports) -->
+  <project name="sony-togari-dev/android_kernel_sony_msm8974" path="kernel/sony/msm8974" remote="gh" revision="lineage-20.0" />
+
+  <!-- Proprietary Vendor Blobs (amami + rhine-common + msm8974-common) -->
+  <project name="lin18-microG/proprietary_vendor_sony_amami" path="vendor/sony" remote="gh" revision="lineage-18.1" />
+
+  <!-- Sony Hardware Helpers (timekeep is already in LineageOS-UL lineage.xml) -->
+  <project name="LineageOS/android_hardware_sony_macaddrsetup" path="hardware/sony/macaddrsetup" remote="gh" revision="lineage-20" />
+  <project name="LineageOS/android_hardware_sony_thermanager" path="hardware/sony/thermanager" remote="gh" revision="lineage-18.1" />
+  <project name="LineageOS/android_external_sony_boringssl-compat" path="external/sony/boringssl-compat" remote="gh" revision="lineage-18.1" />
+</manifest>

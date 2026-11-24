@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Optional low-RAM / partition-budget debloat for amami (/system <= 2,436,890,624 bytes).
+  Rename to debloat_lowram.xml in .repo/local_manifests/ ONLY if partition audit shows < 60 MiB headroom.
+-->
+<manifest>
+  <remove-project name="LineageOS/android_packages_apps_Jelly" />
+  <remove-project name="LineageOS/android_packages_apps_Recorder" />
+  <remove-project name="LineageOS/android_packages_apps_Seedvault" />
+  <remove-project name="LineageOS/android_packages_apps_Etar" />
+  <remove-project name="LineageOS/android_packages_apps_Eleven" />
+</manifest>

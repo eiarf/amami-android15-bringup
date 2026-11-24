@@ -1,0 +1,5 @@
+out/
+logs/
+*.log
+__pycache__/
+*.tmp
