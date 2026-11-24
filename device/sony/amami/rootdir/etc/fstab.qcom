@@ -1,0 +1,16 @@
+# Mainline 6.16 fstab for Sony Xperia Z1 Compact (amami)
+# eMMC (sdhc_1) is at /soc/f9824900.mmc -> /dev/block/platform/soc/f9824900.mmc/by-name/*
+# SDCard (sdhc_2) is at /soc/f98a4900.mmc
+
+#<src>                                                       <mnt_point>  <type>  <mnt_flags and options>                                                <fs_mgr_flags>
+/dev/block/platform/soc/f9824900.mmc/by-name/boot            /boot        emmc    defaults                                                               recoveryonly
+/dev/block/platform/soc/f9824900.mmc/by-name/FOTAKernel      /recovery    emmc    defaults                                                               recoveryonly
+/dev/block/platform/soc/f9824900.mmc/by-name/system          /system      ext4    ro,barrier=1                                                           wait,first_stage_mount
+/dev/block/platform/soc/f9824900.mmc/by-name/cache           /cache       ext4    noatime,nosuid,nodev,barrier=1,data=ordered,noauto_da_alloc,discard    wait,check
+/dev/block/platform/soc/f9824900.mmc/by-name/userdata        /data        f2fs    noatime,nosuid,nodev,rw,inline_xattr                                   wait,check,formattable
+/dev/block/platform/soc/f9824900.mmc/by-name/userdata        /data        ext4    noatime,nosuid,nodev,barrier=1,data=ordered,noauto_da_alloc,discard    wait,check
+/dev/block/platform/soc/f9824900.mmc/by-name/apps_log        /misc        emmc    defaults                                                               defaults
+
+/devices/platform/soc/f98a4900.mmc/mmc_host*                 auto         auto    defaults                                                               voldmanaged=sdcard1:auto
+/devices/platform/soc/f9a55000.usb*                          auto         auto    defaults                                                               voldmanaged=usb:auto
+/dev/block/zram0                                             none         swap    defaults                                                               zramsize=536870912

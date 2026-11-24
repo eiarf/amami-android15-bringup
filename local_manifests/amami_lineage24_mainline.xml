@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+  <!--
+    Local Manifest: Sony Xperia Z1 Compact (amami)
+    Target: LineageOS 24.0 (Android 17) + Mainline Linux 6.16
+    Note: external/mesa3d, external/minigbm, external/drm_hwcomposer,
+          and external/libdrm are already included in AOSP 17 / LineageOS 24.0 default.xml.
+  -->
+
+  <remote name="msm8974-mainline" fetch="https://github.com/msm8974-mainline/" />
+  <remote name="glodroid" fetch="https://github.com/GloDroid/" />
+
+  <!-- Mainline Kernel 6.16 for msm8974 -->
+  <project path="kernel/sony/msm8974"
+           name="linux"
+           remote="msm8974-mainline"
+           revision="qcom-msm8974-6.16.y"
+           clone-depth="1" />
+
+  <!-- AOSPEXT (builds Mesa3D Freedreno EGL/GLES via Meson since AOSP 17 Android.bp omits them) -->
+  <project path="vendor/aospext"
+           name="aospext"
+           remote="glodroid"
+           revision="main"
+           clone-depth="1" />
+
+  <!-- Firmware blobs only (a330, wcnss, adsp, modem) - copied selectively by device.mk -->
+  <project path="vendor/sony/amami-fw"
+           name="lin18-microG/proprietary_vendor_sony_amami"
+           remote="github"
+           revision="lineage-18.1"
+           clone-depth="1" />
+
+  <!-- Device Tree (copy from D:\z1c-a17\device\sony\amami or host on your GitHub) -->
+  <!--
+  <project path="device/sony/amami"
+           name="<YOUR_GITHUB_USER>/android_device_sony_amami"
+           remote="github"
+           revision="lineage-24.0-mainline" />
+  -->
+
+  <!--
+    Legacy CAF HALs (hardware/qcom-caf/msm8974/*) and proprietary vendor/sony
+    from 115ek/manifest are intentionally EXCLUDED because mainline kernel 6.16
+    uses DRM/KMS (drm_hwcomposer + minigbm + mesa3d) and upstream drivers.
+  -->
+</manifest>

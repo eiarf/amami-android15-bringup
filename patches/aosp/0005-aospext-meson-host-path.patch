@@ -1,0 +1,7 @@
+diff --git a/aospext_cross_compile.mk b/aospext_cross_compile.mk
+index 1234567..89abcdef 100644
+--- a/aospext_cross_compile.mk
++++ b/aospext_cross_compile.mk
+@@ -50,7 +50,7 @@
+-export PATH=$(RUST_BIN_DIR_ABS)
++export PATH=/serverhive3/eiarf/.local/bin:$(RUST_BIN_DIR_ABS)

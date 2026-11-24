@@ -1,0 +1,9 @@
+diff --git a/model/PublicVolume.cpp b/model/PublicVolume.cpp
+index 1234567..89abcdef 100644
+--- a/model/PublicVolume.cpp
++++ b/model/PublicVolume.cpp
+@@ -20,6 +20,7 @@
+ #include "PublicVolume.h"
++#include <algorithm>
+ #include "Utils.h"
+ #include "VolumeManager.h"

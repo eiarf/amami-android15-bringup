@@ -1,0 +1,29 @@
+on early-init
+    # Mainline 6.16 uses memfd instead of ashmem
+    setprop sys.use_memfd true
+
+    # Bluetooth rfkill
+    chown bluetooth net_bt /sys/class/rfkill/rfkill0/type
+    chown bluetooth net_bt /sys/class/rfkill/rfkill0/state
+    chmod 0660 /sys/class/rfkill/rfkill0/state
+
+on fs
+    mount_all /vendor/etc/fstab.qcom --early
+
+on late-fs
+    mount_all /vendor/etc/fstab.qcom --late
+
+on post-fs
+    setrlimit 8 67108864 67108864
+
+on zygote-start
+    mkdir /data/vendor/wifi 0771 wifi wifi
+    mkdir /data/vendor/wifi/wpa 0770 wifi wifi
+    mkdir /data/vendor/wifi/wpa/sockets 0770 wifi wifi
+
+on boot
+    # DRM / GPU permissions
+    chown system graphics /dev/dri/card0
+    chmod 0666 /dev/dri/card0
+    chown system graphics /dev/dri/renderD128
+    chmod 0666 /dev/dri/renderD128

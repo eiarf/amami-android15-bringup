@@ -1,0 +1,8 @@
+diff --git a/volume_manager/include/volume_manager/VolumeManager.h b/volume_manager/include/volume_manager/VolumeManager.h
+index 1234567..89abcdef 100644
+--- a/volume_manager/include/volume_manager/VolumeManager.h
++++ b/volume_manager/include/volume_manager/VolumeManager.h
+@@ -20,6 +20,7 @@
+ #include <string>
++#include <vector>
+ #include <list>

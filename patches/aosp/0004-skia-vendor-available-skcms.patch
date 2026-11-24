@@ -1,0 +1,8 @@
+diff --git a/Android.bp b/Android.bp
+index 1234567..89abcdef 100644
+--- a/Android.bp
++++ b/Android.bp
+@@ -100,6 +100,7 @@ cc_library_static {
+     name: "libskia_skcms",
+     host_supported: true,
++    vendor_available: true,

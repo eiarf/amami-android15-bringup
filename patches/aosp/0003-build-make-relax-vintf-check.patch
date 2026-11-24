@@ -1,0 +1,10 @@
+diff --git a/core/Makefile b/core/Makefile
+index 1234567..89abcdef 100644
+--- a/core/Makefile
++++ b/core/Makefile
+@@ -5200,8 +5200,8 @@ endif
+ 
+-droid_targets: $(check_vintf_all_deps)
+-$(call dist-for-goals, droid_targets, $(check_vintf_all_deps))
++# droid_targets: $(check_vintf_all_deps)
++# $(call dist-for-goals, droid_targets, $(check_vintf_all_deps))

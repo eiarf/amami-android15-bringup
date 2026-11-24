@@ -1,0 +1,7 @@
+<manifest version="1.0" type="device">
+    <!--
+      Minimal VINTF device manifest for initial mainline bringup.
+      allocator, mapper, and hwc3 fragments are provided by their respective
+      vintf_fragments in external/minigbm and external/drm_hwcomposer.
+    -->
+</manifest>
